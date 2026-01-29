@@ -1,39 +1,45 @@
 import streamlit as st
-from PIL import Image
 import numpy as np
+from PIL import Image
+import logic
 
-st.set_page_config(page_title="大乐透中奖助手", layout="centered")
+st.set_page_config(page_title="超级大乐透自动核奖", page_icon="🧧")
 
-st.title("🧧 大乐透中奖自动核对")
-st.write("上传彩票照片，自动识别期号并计算奖金")
+st.title("🧧 大乐透自动核奖助手")
+st.write("上传彩票照片（支持单注、复式、套餐票）")
 
-# 1. 上传组件
-uploaded_file = st.file_uploader("选择彩票照片...", type=["jpg", "jpeg", "png"])
+files = st.file_uploader("点击上传彩票照片", type=['jpg','png','jpeg'], accept_multiple_files=True)
 
-if uploaded_file is not None:
-    # 展示图片
-    image = Image.open(uploaded_file)
-    st.image(image, caption='上传的彩票', use_column_width=True)
-    
-    with st.spinner('正在识别中，请稍候...'):
-        # 将 PIL Image 转为 OpenCV 格式供 OCR 使用
-        img_array = np.array(image)
+if files:
+    all_money = 0
+    for file in files:
+        img = Image.open(file)
+        st.image(img, caption=f"已上传: {file.name}", width=300)
         
-        # --- 调用你之前的函数 ---
-        # ticket = parse_ticket_image(img_array) 
-        # win_data = get_win_number(ticket["issue"])
-        # total_money, details = calculate_prize(...)
-        # -----------------------
-        
-        # 模拟结果展示
-        st.success("识别完成！")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("中奖总额", f"￥{520}") # 示例
-        with col2:
-            st.metric("识别期号", "23056")
+        with st.spinner(f'正在分析 {file.name}...'):
+            # 1. OCR识别
+            issue, bets, is_zj = logic.extract_numbers(np.array(img))
             
-        st.subheader("中奖明细")
-        st.write("第1注：九等奖 (5元)")
-        st.write("第2注：四等奖 (3000元)")
+            if not issue:
+                st.error(f"{file.name}: 未能识别到期号")
+                continue
+            
+            # 2. 获取开奖数据
+            win_data = logic.get_win_data(issue)
+            if not win_data:
+                st.warning(f"期号 {issue}: 暂无开奖信息")
+                continue
+                
+            st.info(f"期号: {issue} | 开奖号码: {' '.join(map(str, win_data['front']))} + {' '.join(map(str, win_data['back']))}")
+            
+            # 3. 计算结果
+            file_prize = 0
+            for bet in bets:
+                file_prize += logic.calculate_prize(bet, win_data, is_zj)
+            
+            st.success(f"本张彩票中奖金额: ￥{file_prize}")
+            all_money += file_prize
+
+    st.divider()
+    st.balloons()
+    st.metric("总计中奖金额", f"￥{all_money}")
