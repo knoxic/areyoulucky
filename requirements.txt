@@ -1,6 +1,5 @@
 streamlit
-paddleocr
-paddlepaddle
+easyocr
 opencv-python-headless
 requests
 beautifulsoup4
