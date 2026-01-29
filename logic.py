@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from paddleocr import PaddleOCR
 
 # 初始化OCR (使用轻量化参数，节省内存)
-ocr = PaddleOCR(use_angle_cls=True, lang="ch", show_log=False)
+ocr = PaddleOCR(use_angle_cls=True, lang="ch", det_model_dir=None, rec_model_dir=None)
 
 def get_win_data(issue):
     """爬取开奖信息"""
